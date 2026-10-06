@@ -1,0 +1,12 @@
+[package]
+name = "bee-twilight-check"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+twilight-gateway = { version = "0.16", default-features = false, features = ["rustls-webpki-roots", "rustls-ring", "twilight-http", "zlib-stock"] }
+twilight-http = { version = "0.16", default-features = false, features = ["rustls-webpki-roots", "rustls-ring"] }
+twilight-model = "0.16"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "process"] }
+serde_json = "1"
