@@ -701,7 +701,9 @@ export interface TestInteractionRequest {
   type?: number
   /** Invoking user's Discord locale; defaults to en-US. */
   locale?: string
-  command_name: string
+  command_name?: string
+  /** For a button press (`type: 3`): the pressed component's custom_id. */
+  custom_id?: string
   guild_id?: string
   channel_id?: string
   user_id?: string
@@ -731,6 +733,21 @@ export function createTestInteraction(
   db: Database,
   request: TestInteractionRequest
 ): CreateTestInteractionResult {
+  if (request.type === 3) {
+    if (!request.custom_id) return { ok: false, reason: 'unknown_command' }
+    const interaction = createInteraction(db, {
+      interactionId: generateSnowflake(),
+      applicationId: request.application_id,
+      token: randomBytes(48).toString('base64url'),
+      type: 3,
+      locale: request.locale,
+      guildId: request.guild_id,
+      channelId: request.channel_id,
+      data: { custom_id: request.custom_id, component_type: 2 },
+      userId: request.user_id ?? generateSnowflake(),
+    })
+    return { ok: true, interaction }
+  }
   const guildCommand = request.guild_id
     ? (db
         .prepare(

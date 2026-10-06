@@ -26,6 +26,10 @@ export interface InteractionObject {
   user?: Record<string, unknown>
   token: string
   version: number
+  authorizing_integration_owners: Record<string, string>
+  context: number
+  entitlements: unknown[]
+  app_permissions: string
 }
 
 /** Interaction record type retrieved from the DB */
@@ -88,6 +92,13 @@ function toInteractionObject(
     type: row.type,
     token: row.token,
     version: 1,
+    // Always present on real Discord; strict clients (twilight) require them.
+    authorizing_integration_owners: row.guild_id
+      ? { '0': row.guild_id }
+      : { '1': row.user_id },
+    context: row.guild_id ? 0 : 1,
+    entitlements: [],
+    app_permissions: '0',
     ...(row.type !== 1 && { locale: row.locale }),
     ...(data && { data }),
     ...(row.channel_id && { channel_id: row.channel_id }),

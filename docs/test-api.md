@@ -646,6 +646,10 @@ curl -X POST http://localhost:3000/_test/channels/333333333333333333/messages \
 Returns the created message object (same shape as
 `POST /channels/:channelId/messages`), with `author.bot: false`.
 
+As on Discord, `<@id>` and `<@!id>` in `content` are resolved into `mentions`
+(registered users only, deduplicated) and `<@&id>` into `mention_roles`, in
+the response, the Gateway `MESSAGE_CREATE` and every REST read.
+
 **Fields**
 
 | Field                 | Required | Description                                                                                                                       |
@@ -858,8 +862,9 @@ curl -X POST http://localhost:3000/_test/interactions \
 | Field            | Required | Description                                                                                                 |
 | ---------------- | -------- | ----------------------------------------------------------------------------------------------------------- |
 | `application_id` | ✅       | The bot's application ID (same as its `user.id`)                                                            |
-| `command_name`   | ✅       | Name of a command already registered via the Application Commands API                                       |
-| `type`           | —        | Interaction type (default: `2`, APPLICATION_COMMAND)                                                        |
+| `command_name`   | ✅ / —   | Name of a command already registered via the Application Commands API. Not used when `type` is `3`          |
+| `type`           | —        | Interaction type (default: `2`, APPLICATION_COMMAND). `3` simulates a button press (MESSAGE_COMPONENT)      |
+| `custom_id`      | ✅ / —   | Required when `type` is `3`: the pressed button's `custom_id`, sent as `data.custom_id` (`component_type: 2`) |
 | `guild_id`       | —        | Guild ID. When set, prefers a guild-scoped command match, falling back to a global command of the same name |
 | `channel_id`     | —        | Channel ID the interaction is bound to (needed for `type: 4`/`5` original responses and followups)          |
 | `user_id`        | —        | Invoking user ID (auto-generated if omitted)                                                                |

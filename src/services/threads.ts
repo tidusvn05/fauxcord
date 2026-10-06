@@ -10,6 +10,7 @@ import { generateSnowflake } from '../snowflake'
 import { toDiscordTimestamp } from '../timestamp'
 import { THREAD_AUTO_ARCHIVE_DURATIONS } from '../validators/thread'
 import { getGuildMember, type GuildMemberObject } from './guild-members'
+import { gatewayBus } from '../gateway/bus'
 
 /** Default thread type when the request omits `type` (Public Thread). */
 const DEFAULT_THREAD_TYPE = 11
@@ -357,7 +358,11 @@ export function createThread(
   const row = db
     .prepare('SELECT * FROM channels WHERE id = ?')
     .get(threadId) as ThreadRow
-  return toThreadObject(db, row)
+  const thread = toThreadObject(db, row)
+  gatewayBus.emit('thread.create', {
+    channel: thread as unknown as Record<string, unknown>,
+  })
+  return thread
 }
 
 /** Options for listing archived threads. */

@@ -46,6 +46,7 @@ export interface GatewayBusEvents {
   }
   'guild.create': { guild: Record<string, unknown> }
   'channel.create': { channel: Record<string, unknown> }
+  'thread.create': { channel: Record<string, unknown> }
   'channel.update': { channel: Record<string, unknown> }
   'channel.delete': { channel: Record<string, unknown> }
   'guild.member.add': { guildId: string; member: Record<string, unknown> }

@@ -130,6 +130,16 @@ export function registerGatewaySubscriptions(
       GatewayIntentBits.Guilds
     )
   }
+  const onThreadCreate: Parameters<typeof gatewayBus.on<'thread.create'>>[1] = (
+    payload
+  ) => {
+    broadcastToAll(
+      manager,
+      'THREAD_CREATE',
+      { ...payload.channel, newly_created: true },
+      GatewayIntentBits.Guilds
+    )
+  }
   const onChannelUpdate: Parameters<
     typeof gatewayBus.on<'channel.update'>
   >[1] = (payload) => {
@@ -231,6 +241,7 @@ export function registerGatewaySubscriptions(
   gatewayBus.on('message.reaction.remove', onReactionRemove)
   gatewayBus.on('guild.create', onGuildCreate)
   gatewayBus.on('channel.create', onChannelCreate)
+  gatewayBus.on('thread.create', onThreadCreate)
   gatewayBus.on('channel.update', onChannelUpdate)
   gatewayBus.on('channel.delete', onChannelDelete)
   gatewayBus.on('guild.member.add', onGuildMemberAdd)
@@ -243,6 +254,7 @@ export function registerGatewaySubscriptions(
 
   return () => {
     gatewayBus.off('message.create', onMessageCreate)
+    gatewayBus.off('thread.create', onThreadCreate)
     gatewayBus.off('message.update', onMessageUpdate)
     gatewayBus.off('message.delete', onMessageDelete)
     gatewayBus.off('message.delete.bulk', onMessageDeleteBulk)

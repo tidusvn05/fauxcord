@@ -154,8 +154,8 @@ export interface MessageObject {
   edited_timestamp: string | null
   tts: boolean
   mention_everyone: boolean
-  mentions: never[]
-  mention_roles: never[]
+  mentions: UserObject[]
+  mention_roles: string[]
   attachments: AttachmentObject[]
   embeds: unknown[]
   /** Catalog-derived sticker snapshots, omitted when the message has none. */
@@ -336,6 +336,18 @@ export function hydrateMessageRow(
     reactions,
     baseUrl
   )
+  // Discord resolves `<@id>` / `<@!id>` / `<@&role>` in the content into mentions.
+  const mentioned = new Set<string>()
+  for (const m of row.content.matchAll(/<@!?(\d{1,20})>/g)) {
+    if (mentioned.has(m[1])) continue
+    const user = getUser(db, m[1])
+    if (!user) continue
+    mentioned.add(m[1])
+    message.mentions.push(user)
+  }
+  message.mention_roles = [
+    ...new Set(row.content.matchAll(/<@&(\d{1,20})>/g).map((m) => m[1])),
+  ]
   const stickers = getMessageStickerItems(db, row.id)
   if (stickers.length > 0) message.sticker_items = stickers
   if (row.author_token === 'interaction') {
