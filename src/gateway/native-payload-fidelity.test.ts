@@ -79,7 +79,13 @@ describe('native payload fidelity', () => {
         },
         body: JSON.stringify(body),
       })
-    return { db: server.db, guild, channel, user, next, post }
+    const patch = (path: string, body: unknown) =>
+      fetch(`${http}${path}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: TOKEN },
+        body: JSON.stringify(body),
+      })
+    return { db: server.db, guild, channel, user, next, post, patch }
   }
 
   it('resolves user and role mentions from injected human content', async () => {
@@ -147,6 +153,35 @@ describe('native payload fidelity', () => {
       })
     }
   )
+
+  it('keeps the buttons a bot sends, and drops them when edited away', async () => {
+    const { channel, next, post, patch } = await start()
+    const components = [
+      {
+        type: 1,
+        components: [
+          { type: 2, style: 1, label: 'Approve', custom_id: 'desk:approve:1' },
+        ],
+      },
+    ]
+    const res = await post(
+      `/api/v10/channels/${channel}/messages`,
+      { content: 'Decide', components },
+      true
+    )
+    expect(res.status).toBe(200)
+    const sent = (await res.json()) as { id: string; components: unknown[] }
+    expect(sent.components).toEqual(components)
+    const event = await next('MESSAGE_CREATE')
+    expect(event.d).toMatchObject({ id: sent.id, components })
+
+    const edited = await patch(
+      `/api/v10/channels/${channel}/messages/${sent.id}`,
+      { content: 'Decided', components: [] }
+    )
+    expect(edited.status).toBe(200)
+    expect(await edited.json()).toMatchObject({ components: [] })
+  })
 
   it('simulates a button press with its custom_id', async () => {
     const { guild, channel, user, next, post } = await start()

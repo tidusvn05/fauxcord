@@ -65,6 +65,8 @@ export interface MessageRow {
   referenced_message_id: string | null
   created_at: string
   edited_at: string | null
+  /** JSON of the message's components, or null when it has none */
+  components?: string | null
 }
 
 /** User record type retrieved from the DB */
@@ -160,8 +162,8 @@ export interface MessageObject {
   embeds: unknown[]
   /** Catalog-derived sticker snapshots, omitted when the message has none. */
   sticker_items?: APIStickerItem[]
-  /** Message components (slash command components, always empty in the mock) */
-  components: never[]
+  /** Message components (buttons, selects) as the author sent them */
+  components: unknown[]
   /** Reaction list (the field itself is omitted when there are no reactions) */
   reactions?: ReactionObject[]
   pinned: boolean
@@ -266,7 +268,7 @@ export function toMessageObject(
     embeds: embeds
       .toSorted((a, b) => a.position - b.position)
       .map((e) => JSON.parse(e.data) as unknown),
-    components: [],
+    components: row.components ? (JSON.parse(row.components) as unknown[]) : [],
     pinned: row.pinned === 1,
     type: row.type,
     flags: row.flags,
@@ -492,6 +494,8 @@ export interface MessageCreateParams {
   stickerItems?: APIStickerItem[]
   messageReference?: { message_id?: string }
   flags?: number
+  /** Message components (buttons, selects), stored as sent */
+  components?: unknown[]
 }
 
 /**
@@ -551,8 +555,8 @@ export function createMessage(
 ): MessageObject {
   const msg = db.transaction(() => {
     db.prepare(
-      `INSERT INTO messages (id, channel_id, author_id, author_token, content, tts, flags, referenced_message_id, type)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO messages (id, channel_id, author_id, author_token, content, tts, flags, referenced_message_id, type, components)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(
       params.messageId,
       params.channelId,
@@ -562,7 +566,8 @@ export function createMessage(
       params.tts ? 1 : 0,
       params.flags ?? 0,
       params.messageReference?.message_id ?? null,
-      params.type ?? 0
+      params.type ?? 0,
+      params.components?.length ? JSON.stringify(params.components) : null
     )
 
     // Save embeds
@@ -633,7 +638,12 @@ export function createMessage(
 export function updateMessage(
   db: Database,
   messageId: string,
-  payload: { content?: string; embeds?: unknown[] | null; flags?: number },
+  payload: {
+    content?: string
+    embeds?: unknown[] | null
+    flags?: number
+    components?: unknown[] | null
+  },
   baseUrl: string
 ): MessageObject | null {
   const row = db
@@ -645,6 +655,14 @@ export function updateMessage(
     db.prepare(
       "UPDATE messages SET content = ?, edited_at = datetime('now') WHERE id = ?"
     ).run(payload.content, messageId)
+  }
+
+  // As with embeds: null or [] removes the components, undefined leaves them.
+  if (payload.components !== undefined) {
+    db.prepare('UPDATE messages SET components = ? WHERE id = ?').run(
+      payload.components?.length ? JSON.stringify(payload.components) : null,
+      messageId
+    )
   }
 
   // null is equivalent to an empty array (delete all embeds). undefined means "no change" and is ignored

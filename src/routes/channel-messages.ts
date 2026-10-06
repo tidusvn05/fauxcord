@@ -261,6 +261,9 @@ export function createChannelMessageRoutes(
             messageReference: payload.message_reference as
               { message_id?: string } | undefined,
             flags: payload.flags as number | undefined,
+            components: Array.isArray(payload.components)
+              ? (payload.components as unknown[])
+              : undefined,
             stickerItems,
           },
           baseUrl,
@@ -323,7 +326,7 @@ export function createChannelMessageRoutes(
 
     const payload = (await parseJsonBody(c)) as Pick<
       MessageCreatePayload,
-      'content' | 'embeds'
+      'content' | 'embeds' | 'components'
     >
 
     const errors = validateMessageCreate(payload)

@@ -95,6 +95,19 @@ function migrateMemberTimeout(db: Database): void {
 }
 
 /**
+ * Adds the stored message components (buttons, selects) to existing messages.
+ * @param db - Database instance
+ */
+function migrateMessageComponents(db: Database): void {
+  const columns = db.prepare('PRAGMA table_info(messages)').all() as {
+    name: string
+  }[]
+  if (columns.every((column) => column.name !== 'components')) {
+    db.exec('ALTER TABLE messages ADD COLUMN components TEXT')
+  }
+}
+
+/**
  * Adds nullable boost dates to existing guild memberships.
  * @param db - Database instance
  */
@@ -958,6 +971,7 @@ export function initializeDatabase(dbPath: string): Database {
   migrateUserGlobalName(db)
   migrateMemberTimeout(db)
   migrateMemberPremiumSince(db)
+  migrateMessageComponents(db)
   migrateChannelsThreadColumns(db)
   migrateChannelsFeatureColumns(db)
   migrateInteractionLocale(db)

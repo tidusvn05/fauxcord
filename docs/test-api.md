@@ -907,6 +907,12 @@ Gateway message events. Other callback types retain the mock's existing scope;
 types 6/7/9 acknowledge without creating an original response. Token expiry,
 component rendering, and uploaded response attachments are not modeled here.
 
+A bot's `POST /channels/:id/messages` and message edits keep the `components`
+they were sent (buttons, selects) as given, and return them in REST reads and
+Gateway `MESSAGE_CREATE`; editing with `components: []` or `null` removes
+them. A test reads a button's `custom_id` from there and presses it with
+`type: 3` above. Components are stored, not validated or rendered.
+
 ---
 
 ## `GET /_test/interactions/:interactionId/callback` — Observe the initial callback
